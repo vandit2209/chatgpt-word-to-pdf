@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Print progress harness</title>
+    <link rel="stylesheet" href="../src/print.css">
+  </head>
+  <body class="print-preparing">
+    <section id="print-status" class="print-status" role="status" aria-live="polite">
+      <div class="print-status-head">
+        <span class="print-status-icon" aria-hidden="true">PDF</span>
+        <div><strong id="print-status-title">Preparing your PDF</strong><p id="print-status-detail">Waiting…</p></div>
+      </div>
+      <div class="print-progress" role="progressbar" aria-label="PDF preparation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="5"><span id="print-progress-bar" style="width:5%"></span></div>
+      <div class="print-status-meta"><span id="print-status-stage">Starting…</span><span id="print-page-count">Calculating pages…</span></div>
+    </section>
+    <main id="document-root"></main>
+    <pre id="test-result" class="no-print">RUNNING</pre>
+    <script>
+      globalThis.chrome = { runtime: { async sendMessage() {
+        return { payload: {
+          title: "Print fixture",
+          messageCount: 4,
+          html: `<h1 class="document-title">Print fixture</h1>
+            <section class="message user"><div class="message-role">You</div><p>First prompt</p></section>
+            <section class="message assistant"><div class="message-role">ChatGPT</div><p>First answer</p></section>
+            <section class="message user page-start"><div class="message-role">You</div><p>Second prompt</p></section>
+            <section class="message assistant"><div class="message-role">ChatGPT</div><p>Second answer</p></section>`
+        } };
+      } } };
+      globalThis.printWasCalled = false;
+      globalThis.print = () => { globalThis.printWasCalled = true; };
+    </script>
+    <script src="../src/print.js"></script>
+    <script>
+      setTimeout(() => {
+        const failures = [];
+        const assert = (condition, message) => { if (!condition) failures.push(message); };
+        assert(document.querySelector(".print-progress").getAttribute("aria-valuenow") === "100", "progress did not reach 100%");
+        assert(document.querySelector("#print-status-title").textContent === "PDF ready to print", "ready status was not shown");
+        assert(document.querySelector("#print-page-count").textContent.includes("2 estimated pages"), "estimated page count was not shown");
+        assert(globalThis.printWasCalled, "print dialog was not requested after rendering");
+        document.querySelector("#test-result").textContent = failures.length ? `FAIL: ${failures.join("; ")}` : "PASS: staged progress, page estimate, and print handoff";
+      }, 1800);
+    </script>
+  </body>
+</html>

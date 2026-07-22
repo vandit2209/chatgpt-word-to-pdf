@@ -18,4 +18,4 @@ unzip -t dist/chat-archive-chrome.zip >/dev/null
 unzip -t dist/chat-archive-safari.zip >/dev/null
 
 echo "Syntax, manifests, and Chrome/Safari packages passed."
-echo "Open tests/docx-harness.html and tests/content-harness.html in a browser for DOM-level checks."
+echo "Open tests/docx-harness.html, tests/content-harness.html, and tests/print-harness.html in a browser for DOM-level checks."

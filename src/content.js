@@ -463,6 +463,7 @@
       token: printToken,
       payload: {
         title: options.title,
+        messageCount: messages.length,
         html: `<h1 class="document-title">${escapeHtml(options.title)}</h1>${metadata}${prepared.join("")}`
       }
     });

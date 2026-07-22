@@ -6,8 +6,23 @@
     <title>Preparing PDF…</title>
     <link rel="stylesheet" href="print.css">
   </head>
-  <body>
-    <div id="print-status" class="print-status" role="status">Preparing your PDF…</div>
+  <body class="print-preparing">
+    <section id="print-status" class="print-status" role="status" aria-live="polite">
+      <div class="print-status-head">
+        <span class="print-status-icon" aria-hidden="true">PDF</span>
+        <div>
+          <strong id="print-status-title">Preparing your PDF</strong>
+          <p id="print-status-detail">Waiting for the conversation data…</p>
+        </div>
+      </div>
+      <div class="print-progress" role="progressbar" aria-label="PDF preparation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="5">
+        <span id="print-progress-bar" style="width:5%"></span>
+      </div>
+      <div class="print-status-meta">
+        <span id="print-status-stage">Starting…</span>
+        <span id="print-page-count">Calculating pages…</span>
+      </div>
+    </section>
     <main id="document-root"></main>
     <script src="print.js"></script>
   </body>
