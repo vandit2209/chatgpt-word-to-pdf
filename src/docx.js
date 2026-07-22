@@ -280,7 +280,7 @@
       if (this.options.includeMetadata) body += `<w:p><w:pPr><w:pStyle w:val="Subtitle"/></w:pPr>${run(`Exported ${new Date().toLocaleString()} · ${this.messages.length} message${this.messages.length === 1 ? "" : "s"}`)}</w:p>`;
       for (const { message, wrapper } of messageNodes) {
         const role = message.role === "user" ? "You" : message.role === "canvas" ? "Canvas" : "ChatGPT";
-        body += `<w:p><w:pPr><w:pStyle w:val="MessageRole"/></w:pPr>${run(role)}</w:p>${this.blocks(wrapper)}`;
+        body += `<w:p><w:pPr><w:pStyle w:val="MessageRole"/>${message.pageBreakBefore ? "<w:pageBreakBefore/>" : ""}</w:pPr>${run(role)}</w:p>${this.blocks(wrapper)}`;
       }
       body += `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1080" w:right="900" w:bottom="1080" w:left="900" w:header="420" w:footer="420" w:gutter="0"/></w:sectPr>`;
 

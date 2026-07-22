@@ -1,6 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>Fixture chat - ChatGPT</title>
+<header><div class="native-actions"><button data-testid="share-chat-button">Share</button></div></header>
 <main>
   <article data-testid="conversation-turn-0">
     <div data-message-author-role="user"><div class="whitespace-pre-wrap">What is <strong>2 + 2</strong>?</div></div>
@@ -23,12 +24,27 @@ globalThis.chrome = {
 <script src="../src/docx.js"></script>
 <script src="../src/content.js"></script>
 <script>
-setTimeout(() => {
+setTimeout(async () => {
   const failures = [];
   const assert = (condition, message) => { if (!condition) failures.push(message); };
+  const until = async (test, timeout = 5000) => {
+    const started = Date.now();
+    while (!test() && Date.now() - started < timeout) await new Promise((resolve) => setTimeout(resolve, 50));
+    return test();
+  };
   assert(document.querySelector("#chat-archive-root"), "launcher missing");
+  assert(document.querySelector("html > #chat-archive-root"), "launcher was not kept outside ChatGPT's layout");
+  assert(document.querySelector("#chat-archive-root").style.getPropertyValue("--ca-launcher-right"), "launcher did not receive a collision-free horizontal position");
   assert(document.querySelectorAll(".ca-single-export").length === 1, "single-response control missing or duplicated");
   assert(ChatArchive.cache.size === 2, "messages were not captured");
+  const conversation = [
+    { id: "u1", role: "user" }, { id: "a1", role: "assistant" },
+    { id: "u2", role: "user" }, { id: "a2", role: "assistant" }
+  ];
+  const pairedPages = ChatArchive.pageSeparated(conversation, conversation).map((message) => message.pageBreakBefore);
+  assert(JSON.stringify(pairedPages) === JSON.stringify([false, false, true, false]), "prompt/answer pairs were not paginated together");
+  const isolatedPages = ChatArchive.pageSeparated([conversation[0], conversation[3]], conversation).map((message) => message.pageBreakBefore);
+  assert(JSON.stringify(isolatedPages) === JSON.stringify([false, true]), "unpaired selected messages were not isolated on separate pages");
   globalThis.testMessageListener({ type: "CHAT_ARCHIVE_COMMAND", command: "export-all" });
   assert(document.querySelector("#chat-archive-modal"), "export modal missing");
   assert(document.querySelectorAll('#chat-archive-modal input[name="format"]').length === 2, "format choices missing");
@@ -47,6 +63,17 @@ setTimeout(() => {
   sanitized.innerHTML = recaptured.html;
   assert(!sanitized.content.querySelector("base,script,iframe,template"), "active document markup was not removed");
   assert(!globalThis.caUnexpectedScript && !globalThis.caUnexpectedFrameScript, "sanitized markup executed a script");
-  document.querySelector("#test-result").textContent = failures.length ? `FAIL: ${failures.join("; ")}` : "PASS: capture, sanitization, launcher, response action, command routing, and export modal";
+  document.querySelector("#chat-archive-modal .ca-close").click();
+  document.querySelector('[data-action="select"]').click();
+  assert(await until(() => document.querySelector(".ca-selection-bar")), "selection mode did not start");
+  const userTurn = document.querySelector('[data-testid="conversation-turn-0"]');
+  userTurn.querySelector(".whitespace-pre-wrap").click();
+  assert(userTurn.classList.contains("ca-message-selected"), "clicking message content did not select its turn");
+  assert(document.querySelector(".ca-selection-bar span").textContent === "1 selected", "selection count did not update after clicking a turn");
+  userTurn.click();
+  assert(!userTurn.classList.contains("ca-message-selected"), "clicking a selected turn did not deselect it");
+  document.querySelector('.ca-selection-bar [data-action="cancel"]').click();
+  assert(!document.querySelector(".ca-select-box"), "selection indicators remained after canceling");
+  document.querySelector("#test-result").textContent = failures.length ? `FAIL: ${failures.join("; ")}` : "PASS: capture, sanitization, floating controls, full-message selection, response action, command routing, and export modal";
 }, 500);
 </script>

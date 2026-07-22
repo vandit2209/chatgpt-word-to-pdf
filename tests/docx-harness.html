@@ -20,7 +20,8 @@ globalThis.ChatArchive = {
   try {
     const messages = [
       { role: "user", html: "<p>Explain the equation and data.</p>", text: "Explain the equation and data." },
-      { role: "assistant", html: `<h2>Result</h2><p>This is <strong>bold</strong>, <em>italic</em>, <code>inline()</code>, and <a href="https://example.com">linked</a>.</p><div class="katex-display"><span class="katex"><span class="katex-mathml"><math display="block"><semantics><mrow><mfrac><mn>1</mn><msqrt><mi>x</mi></msqrt></mfrac><mo>+</mo><msubsup><mi>a</mi><mn>1</mn><mn>2</mn></msubsup></mrow></semantics></math></span><span class="katex-html">visual fallback</span></span></div><table><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody><tr><td>A</td><td>42</td></tr></tbody></table><ul><li>First</li><li>Second</li></ul><pre><code>const answer = 42;</code></pre><img src="data:image/png;base64,test" alt="Fixture">`, text: "Result" }
+      { role: "assistant", html: `<h2>Result</h2><p>This is <strong>bold</strong>, <em>italic</em>, <code>inline()</code>, and <a href="https://example.com">linked</a>.</p><div class="katex-display"><span class="katex"><span class="katex-mathml"><math display="block"><semantics><mrow><mfrac><mn>1</mn><msqrt><mi>x</mi></msqrt></mfrac><mo>+</mo><msubsup><mi>a</mi><mn>1</mn><mn>2</mn></msubsup></mrow></semantics></math></span><span class="katex-html">visual fallback</span></span></div><table><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody><tr><td>A</td><td>42</td></tr></tbody></table><ul><li>First</li><li>Second</li></ul><pre><code>const answer = 42;</code></pre><img src="data:image/png;base64,test" alt="Fixture">`, text: "Result" },
+      { role: "user", html: "<p>Start another prompt on a new page.</p>", text: "Start another prompt on a new page.", pageBreakBefore: true }
     ];
     const blob = await ChatArchiveDocx.create(messages, { title: "DOCX fixture", includeImages: true, includeMetadata: true });
     const bytes = new Uint8Array(await blob.arrayBuffer());
@@ -47,8 +48,8 @@ globalThis.ChatArchive = {
       if (xml.querySelector("parsererror")) throw new Error(`Malformed XML in ${name}: ${xml.querySelector("parsererror").textContent}`);
     }
     const documentXml = decoder.decode(files.get("word/document.xml"));
-    ["<m:f>", "<m:rad>", "<m:sSubSup>", "<w:tbl>", "<w:drawing>"].forEach(token => { if (!documentXml.includes(token)) throw new Error(`Missing conversion token ${token}`); });
-    result.textContent = `PASS: ${bytes.length} bytes, ${files.size} package entries, math/table/image conversion present`;
+    ["<m:f>", "<m:rad>", "<m:sSubSup>", "<w:tbl>", "<w:drawing>", "<w:pageBreakBefore/>"].forEach(token => { if (!documentXml.includes(token)) throw new Error(`Missing conversion token ${token}`); });
+    result.textContent = `PASS: ${bytes.length} bytes, ${files.size} package entries, math/table/image conversion and pagination present`;
   } catch (error) {
     result.textContent = `FAIL: ${error.stack || error}`;
   }

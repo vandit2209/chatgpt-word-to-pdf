@@ -6,11 +6,13 @@
   const state = {
     initialized: true,
     cache: new Map(),
+    order: [],
     selecting: false,
     selected: new Set(),
     observer: null,
     busy: false,
-    lastUrl: location.href
+    lastUrl: location.href,
+    turnSelectionHandlers: new WeakMap()
   };
 
   const ICON = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3.5h7l4 4V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.7"/><path d="M14 3.5v4h4M9 12h6M9 15.5h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`;
@@ -193,7 +195,9 @@
     const newMax = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
     const restore = originalHeight ? Math.min(newMax, originalTop * (scroller.scrollHeight / originalHeight)) : originalTop;
     if (scroller === document.scrollingElement) scrollTo(0, restore); else scroller.scrollTop = restore;
-    return order.map((id) => state.cache.get(id)).filter(Boolean);
+    const messages = order.map((id) => state.cache.get(id)).filter(Boolean);
+    state.order = messages.map((message) => message.id);
+    return messages;
   }
 
   function canvasContent() {
@@ -219,6 +223,7 @@
     if (state.lastUrl !== location.href) {
       state.lastUrl = location.href;
       state.cache.clear();
+      state.order = [];
       if (state.selecting) stopSelection();
     }
     ensureLauncher();
@@ -244,14 +249,35 @@
   }
 
   function ensureLauncher() {
-    if (document.querySelector("#chat-archive-root")) return;
-    const root = document.createElement("div");
-    root.id = "chat-archive-root";
-    root.dataset.caRemove = "true";
-    root.innerHTML = `<div class="ca-launcher"><button type="button" class="ca-button" data-action="select" title="Select messages">${ICON}<span class="ca-label">Select</span></button><button type="button" class="ca-button ca-primary" data-action="export" title="Export conversation">${ICON}<span class="ca-label">Export</span></button></div>`;
-    root.querySelector('[data-action="select"]').addEventListener("click", startSelection);
-    root.querySelector('[data-action="export"]').addEventListener("click", () => openExport({ scope: canvasContent() ? "choose" : "all" }));
-    document.documentElement.append(root);
+    let root = document.querySelector("#chat-archive-root");
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "chat-archive-root";
+      root.dataset.caRemove = "true";
+      root.innerHTML = `<div class="ca-launcher"><button type="button" class="ca-button" data-action="select" title="Select messages">${ICON}<span class="ca-label">Select</span></button><button type="button" class="ca-button ca-primary" data-action="export" title="Export conversation">${ICON}<span class="ca-label">Export</span></button></div>`;
+      root.querySelector('[data-action="select"]').addEventListener("click", startSelection);
+      root.querySelector('[data-action="export"]').addEventListener("click", () => openExport({ scope: canvasContent() ? "choose" : "all" }));
+    }
+    root.className = "ca-floating-controls";
+    if (root.parentElement !== document.documentElement) document.documentElement.append(root);
+    const nativeControl = [...document.querySelectorAll('button[data-testid="share-chat-button"], button[data-testid*="share" i], button[aria-label="Share" i], header button[aria-label*="share" i]')]
+      .find((button) => !button.closest('article, [data-testid^="conversation-turn-"]'));
+    const bounds = nativeControl?.getBoundingClientRect();
+    const launcherWidth = root.querySelector(".ca-launcher")?.getBoundingClientRect().width || 190;
+    let right = 200;
+    if (bounds?.width && bounds.left > innerWidth * 0.55) right = innerWidth - bounds.left + 10;
+    root.style.setProperty("--ca-launcher-right", `${Math.max(12, Math.min(Math.max(12, innerWidth - launcherWidth - 12), right))}px`);
+  }
+
+  function pageSeparated(messages, conversation = messages) {
+    const included = new Set(messages.map((message) => message.id));
+    const positions = new Map(conversation.map((message, index) => [message.id, index]));
+    return messages.map((message, index) => {
+      const position = positions.get(message.id);
+      const previous = position > 0 ? conversation[position - 1] : null;
+      const followsSelectedPrompt = message.role === "assistant" && previous?.role === "user" && included.has(previous.id);
+      return { ...message, pageBreakBefore: index > 0 && !followsSelectedPrompt };
+    });
   }
 
   function attachCheckbox(turn, id) {
@@ -266,10 +292,25 @@
       turn.prepend(box);
     }
     box.checked = state.selected.has(id);
-    box.onchange = () => {
-      if (box.checked) state.selected.add(id); else state.selected.delete(id);
-      updateSelectionBar();
-    };
+    turn.classList.toggle("ca-message-selected", box.checked);
+    if (!state.turnSelectionHandlers.has(turn)) {
+      const handler = (event) => {
+        if (!state.selecting || event.button !== 0) return;
+        const selection = globalThis.getSelection?.();
+        if (selection && !selection.isCollapsed && !event.target.matches(".ca-select-box")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const messageId = turn.dataset.caMessageKey;
+        if (!messageId) return;
+        if (state.selected.has(messageId)) state.selected.delete(messageId); else state.selected.add(messageId);
+        const checkbox = turn.querySelector(":scope > .ca-select-box");
+        if (checkbox) checkbox.checked = state.selected.has(messageId);
+        turn.classList.toggle("ca-message-selected", state.selected.has(messageId));
+        updateSelectionBar();
+      };
+      turn.addEventListener("click", handler, true);
+      state.turnSelectionHandlers.set(turn, handler);
+    }
   }
 
   async function startSelection() {
@@ -305,7 +346,7 @@
     state.selected.clear();
     document.querySelector(".ca-selection-bar")?.remove();
     document.querySelectorAll(".ca-select-box").forEach((node) => node.remove());
-    document.querySelectorAll(".ca-message-selecting").forEach((node) => node.classList.remove("ca-message-selecting"));
+    document.querySelectorAll(".ca-message-selecting").forEach((node) => node.classList.remove("ca-message-selecting", "ca-message-selected"));
   }
 
   function openExport(config) {
@@ -361,18 +402,25 @@
     const status = modal.querySelector(".ca-progress span:last-child");
     try {
       let messages;
+      let conversation;
       if (options.content === "canvas" || config.scope === "canvas") {
         const canvas = canvasContent();
         if (!canvas) throw new Error("No open ChatGPT Canvas was found.");
         messages = [canvas];
       } else if (config.scope === "single" || config.scope === "selected") {
-        captureVisible();
-        messages = config.ids.map((id) => state.cache.get(id)).filter(Boolean);
+        const visible = captureVisible();
+        const orderedIds = [...state.order];
+        for (const message of visible) if (!orderedIds.includes(message.id)) orderedIds.push(message.id);
+        conversation = orderedIds.map((id) => state.cache.get(id)).filter(Boolean);
+        const requested = new Set(config.ids);
+        messages = conversation.filter((message) => requested.has(message.id));
       } else {
-        messages = await loadConversation((message) => { status.textContent = message; });
+        conversation = await loadConversation((message) => { status.textContent = message; });
+        messages = conversation;
       }
       if (options.content === "assistant") messages = messages.filter((message) => message.role === "assistant");
       if (!messages.length) throw new Error("No messages were found to export.");
+      messages = pageSeparated(messages, conversation || messages);
       status.textContent = options.format === "docx" ? "Building Word document…" : "Building print document…";
       if (options.format === "docx") {
         const blob = await globalThis.ChatArchiveDocx.create(messages, options);
@@ -407,7 +455,7 @@
         if (math) node.replaceWith(math.cloneNode(true));
       });
       if (!options.includeImages) wrapper.querySelectorAll("img,svg,canvas").forEach((node) => node.remove());
-      prepared.push(`<section class="message ${message.role}"><div class="message-role">${message.role === "user" ? "You" : message.role === "canvas" ? "Canvas" : "ChatGPT"}</div><div class="message-content">${wrapper.innerHTML}</div></section>`);
+      prepared.push(`<section class="message ${message.role}${message.pageBreakBefore ? " page-start" : ""}"><div class="message-role">${message.role === "user" ? "You" : message.role === "canvas" ? "Canvas" : "ChatGPT"}</div><div class="message-content">${wrapper.innerHTML}</div></section>`);
     }
     const metadata = options.includeMetadata ? `<div class="document-meta">Exported ${escapeHtml(new Date().toLocaleString())} · ${messages.length} message${messages.length === 1 ? "" : "s"}</div>` : "";
     const response = await extensionApi.runtime.sendMessage({
@@ -513,12 +561,13 @@
     if (message.command === "export-canvas") openExport({ scope: "canvas" });
   });
 
-  globalThis.ChatArchive = Object.assign(state, { fetchImage, normalizeImage, captureVisible, loadConversation });
+  globalThis.ChatArchive = Object.assign(state, { fetchImage, normalizeImage, captureVisible, loadConversation, pageSeparated });
   decorate();
   state.observer = new MutationObserver(() => {
     clearTimeout(state.decorateTimer);
     state.decorateTimer = setTimeout(decorate, 180);
   });
   state.observer.observe(document.body, { childList: true, subtree: true });
-  addEventListener("popstate", () => { state.cache.clear(); state.selected.clear(); setTimeout(decorate, 300); });
+  addEventListener("resize", ensureLauncher);
+  addEventListener("popstate", () => { state.cache.clear(); state.order = []; state.selected.clear(); setTimeout(decorate, 300); });
 })();

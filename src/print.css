@@ -6,7 +6,8 @@ body { margin:0 auto; max-width:180mm; }
 .print-status.print-error { border-color:#dca8a8; background:#fff1f1; color:#8b2828; }
 .document-title { margin:0 0 3mm; font-size:24pt; line-height:1.15; color:#101814; }
 .document-meta { margin:0 0 9mm; padding-bottom:4mm; border-bottom:1px solid #d8dfdb; color:#627069; font-size:9pt; }
-.message { break-inside:avoid-page; margin:0 0 8mm; }
+.message { margin:0 0 8mm; }
+.message.page-start { break-before:page; page-break-before:always; }
 .message-role { margin:0 0 2.5mm; color:#147b59; font-size:9pt; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
 .message.user .message-role { color:#59645e; }
 .message-content { min-width:0; }
