@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Fixture chat - ChatGPT</title>
+<main>
+  <article data-testid="conversation-turn-0">
+    <div data-message-author-role="user"><div class="whitespace-pre-wrap">What is <strong>2 + 2</strong>?</div></div>
+  </article>
+  <article data-testid="conversation-turn-1">
+    <div data-message-author-role="assistant"><div class="markdown"><p>The answer is <strong>4</strong>.</p><div class="katex"><span class="katex-mathml"><math><mrow><mn>2</mn><mo>+</mo><mn>2</mn><mo>=</mo><mn>4</mn></mrow></math></span></div><table><tbody><tr><td>Value</td><td>4</td></tr></tbody></table></div></div>
+    <div class="actions"><button aria-label="Copy response">Copy</button></div>
+  </article>
+</main>
+<pre id="test-result">RUNNING</pre>
+<script>
+globalThis.chrome = {
+  runtime: {
+    onMessage: { addListener(listener) { globalThis.testMessageListener = listener; } },
+    getURL(path) { return new URL(`../${path}`, location.href).href; },
+    async sendMessage() { return { ok: false }; }
+  }
+};
+</script>
+<script src="../src/docx.js"></script>
+<script src="../src/content.js"></script>
+<script>
+setTimeout(() => {
+  const failures = [];
+  const assert = (condition, message) => { if (!condition) failures.push(message); };
+  assert(document.querySelector("#chat-archive-root"), "launcher missing");
+  assert(document.querySelectorAll(".ca-single-export").length === 1, "single-response control missing or duplicated");
+  assert(ChatArchive.cache.size === 2, "messages were not captured");
+  globalThis.testMessageListener({ type: "CHAT_ARCHIVE_COMMAND", command: "export-all" });
+  assert(document.querySelector("#chat-archive-modal"), "export modal missing");
+  assert(document.querySelectorAll('#chat-archive-modal input[name="format"]').length === 2, "format choices missing");
+  document.querySelector("#chat-archive-modal .ca-close").click();
+  document.querySelector(".ca-single-export").click();
+  assert(document.querySelector("#chat-archive-modal"), "single-response modal missing");
+  assert(!document.querySelector('#chat-archive-modal input[name="content"]'), "single response unexpectedly offers conversation scope");
+  const content = document.querySelector('[data-message-author-role="assistant"] .markdown');
+  const unsafeBase = document.createElement("base");
+  unsafeBase.href = location.href;
+  const unsafeTemplate = document.createElement("template");
+  unsafeTemplate.innerHTML = '<script>globalThis.caUnexpectedScript = true<\/script><iframe srcdoc="<script>globalThis.caUnexpectedFrameScript = true<\/script>"></iframe>';
+  content.append(unsafeBase, unsafeTemplate);
+  const recaptured = ChatArchive.captureVisible().find((message) => message.role === "assistant");
+  const sanitized = document.createElement("template");
+  sanitized.innerHTML = recaptured.html;
+  assert(!sanitized.content.querySelector("base,script,iframe,template"), "active document markup was not removed");
+  assert(!globalThis.caUnexpectedScript && !globalThis.caUnexpectedFrameScript, "sanitized markup executed a script");
+  document.querySelector("#test-result").textContent = failures.length ? `FAIL: ${failures.join("; ")}` : "PASS: capture, sanitization, launcher, response action, command routing, and export modal";
+}, 500);
+</script>

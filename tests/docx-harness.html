@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>DOCX harness</title>
+<pre id="result">RUNNING</pre>
+<script>
+globalThis.ChatArchive = {
+  async fetchImage(url) { return url; },
+  async normalizeImage() {
+    return {
+      bytes: Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+XvY7WQAAAABJRU5ErkJggg=="), c => c.charCodeAt(0)),
+      extension: "png", width: 1, height: 1
+    };
+  }
+};
+</script>
+<script src="../src/docx.js"></script>
+<script>
+(async () => {
+  const result = document.querySelector("#result");
+  try {
+    const messages = [
+      { role: "user", html: "<p>Explain the equation and data.</p>", text: "Explain the equation and data." },
+      { role: "assistant", html: `<h2>Result</h2><p>This is <strong>bold</strong>, <em>italic</em>, <code>inline()</code>, and <a href="https://example.com">linked</a>.</p><div class="katex-display"><span class="katex"><span class="katex-mathml"><math display="block"><semantics><mrow><mfrac><mn>1</mn><msqrt><mi>x</mi></msqrt></mfrac><mo>+</mo><msubsup><mi>a</mi><mn>1</mn><mn>2</mn></msubsup></mrow></semantics></math></span><span class="katex-html">visual fallback</span></span></div><table><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody><tr><td>A</td><td>42</td></tr></tbody></table><ul><li>First</li><li>Second</li></ul><pre><code>const answer = 42;</code></pre><img src="data:image/png;base64,test" alt="Fixture">`, text: "Result" }
+    ];
+    const blob = await ChatArchiveDocx.create(messages, { title: "DOCX fixture", includeImages: true, includeMetadata: true });
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (String.fromCharCode(...bytes.slice(0, 4)) !== "PK\u0003\u0004") throw new Error("ZIP signature missing");
+
+    const decoder = new TextDecoder();
+    const files = new Map();
+    let offset = 0;
+    while (offset + 30 <= bytes.length && bytes[offset] === 0x50 && bytes[offset + 1] === 0x4b && bytes[offset + 2] === 0x03 && bytes[offset + 3] === 0x04) {
+      const view = new DataView(bytes.buffer, bytes.byteOffset + offset);
+      const size = view.getUint32(18, true);
+      const nameLength = view.getUint16(26, true);
+      const extraLength = view.getUint16(28, true);
+      const name = decoder.decode(bytes.slice(offset + 30, offset + 30 + nameLength));
+      const start = offset + 30 + nameLength + extraLength;
+      files.set(name, bytes.slice(start, start + size));
+      offset = start + size;
+    }
+    const required = ["[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/styles.xml", "word/_rels/document.xml.rels", "word/media/image-1.png"];
+    required.forEach(name => { if (!files.has(name)) throw new Error(`Missing ${name}`); });
+    for (const [name, data] of files) {
+      if (!name.endsWith(".xml") && !name.endsWith(".rels")) continue;
+      const xml = new DOMParser().parseFromString(decoder.decode(data), "application/xml");
+      if (xml.querySelector("parsererror")) throw new Error(`Malformed XML in ${name}: ${xml.querySelector("parsererror").textContent}`);
+    }
+    const documentXml = decoder.decode(files.get("word/document.xml"));
+    ["<m:f>", "<m:rad>", "<m:sSubSup>", "<w:tbl>", "<w:drawing>"].forEach(token => { if (!documentXml.includes(token)) throw new Error(`Missing conversion token ${token}`); });
+    result.textContent = `PASS: ${bytes.length} bytes, ${files.size} package entries, math/table/image conversion present`;
+  } catch (error) {
+    result.textContent = `FAIL: ${error.stack || error}`;
+  }
+})();
+</script>

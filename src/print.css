@@ -1,0 +1,31 @@
+@page { size: A4; margin: 18mm 16mm 20mm; }
+* { box-sizing:border-box; }
+html { color:#17211c; background:#fff; font:11pt/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; }
+body { margin:0 auto; max-width:180mm; }
+.print-status { margin:30px auto; padding:16px 18px; border:1px solid #d8dfdb; border-radius:8px; background:#f5f7f6; color:#435149; text-align:center; }
+.print-status.print-error { border-color:#dca8a8; background:#fff1f1; color:#8b2828; }
+.document-title { margin:0 0 3mm; font-size:24pt; line-height:1.15; color:#101814; }
+.document-meta { margin:0 0 9mm; padding-bottom:4mm; border-bottom:1px solid #d8dfdb; color:#627069; font-size:9pt; }
+.message { break-inside:avoid-page; margin:0 0 8mm; }
+.message-role { margin:0 0 2.5mm; color:#147b59; font-size:9pt; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+.message.user .message-role { color:#59645e; }
+.message-content { min-width:0; }
+h1,h2,h3,h4,h5,h6 { break-after:avoid; color:#121a16; line-height:1.25; }
+h1 { font-size:20pt; } h2 { font-size:16pt; } h3 { font-size:13pt; }
+p { orphans:3; widows:3; }
+a { color:#0c684a; text-decoration:underline; overflow-wrap:anywhere; }
+blockquote { margin:4mm 0; padding:1mm 0 1mm 4mm; border-left:3px solid #9fc5b5; color:#435149; }
+pre { break-inside:avoid; overflow-wrap:anywhere; white-space:pre-wrap; margin:4mm 0; padding:4mm; border:1px solid #d9e0dc; border-radius:4px; background:#f5f7f6; font:8.5pt/1.45 ui-monospace,SFMono-Regular,Consolas,monospace; }
+code { padding:.5mm 1mm; border-radius:2px; background:#eff3f1; font:9pt ui-monospace,SFMono-Regular,Consolas,monospace; }
+pre code { padding:0; background:transparent; }
+table { width:100%; margin:4mm 0; border-collapse:collapse; font-size:9.5pt; }
+th,td { padding:2.2mm 2.5mm; border:1px solid #bfc9c3; text-align:left; vertical-align:top; }
+th { background:#edf3f0; font-weight:700; }
+img { max-width:100%; height:auto; break-inside:avoid; }
+figure { break-inside:avoid; margin:4mm 0; }
+figcaption { margin-top:1.5mm; color:#65716b; font-size:8.5pt; }
+.katex-display,.math-display { overflow:visible!important; margin:4mm 0; text-align:center; }
+math { font-family:"STIX Two Math","Cambria Math",serif; }
+.page-break { break-before:page; }
+.no-print { display:none!important; }
+@media print { a[href]::after { content:none!important; } }

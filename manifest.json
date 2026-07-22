@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "Chat Archive — Word & PDF",
+  "short_name": "Chat Archive",
+  "version": "1.0.2",
+  "description": "Export a ChatGPT response, selected messages, a full conversation, or Canvas to Word and PDF.",
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://*.oaistatic.com/*",
+    "https://*.oaiusercontent.com/*",
+    "https://*.openai.com/*",
+    "https://*.blob.core.windows.net/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_title": "Export ChatGPT to Word or PDF",
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": ["src/docx.js", "src/content.js"],
+      "css": ["src/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/print.css", "src/print.html"],
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ]
+    }
+  ]
+}
