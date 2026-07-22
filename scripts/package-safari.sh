@@ -24,7 +24,7 @@ fi
 if [ -n "$PACKAGER" ]; then
   xcrun "$PACKAGER" "$SAFARI_SOURCE" \
     --project-location "$PROJECT_DIR/dist/safari-xcode" \
-    --app-name "Chat Archive" \
+    --app-name "ChatGPT to Word PDF" \
     --bundle-identifier "com.chatarchive.exporter" \
     --swift --macos-only --copy-resources --no-open --no-prompt --force
   echo "Created the Safari Xcode project in $PROJECT_DIR/dist/safari-xcode"

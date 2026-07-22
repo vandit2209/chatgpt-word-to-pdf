@@ -1,4 +1,4 @@
-# Chat Archive — Word & PDF
+# ChatGPT to Word/PDF
 
 A local-only Chrome and Safari WebExtension for exporting ChatGPT content without subscriptions or usage limits.
 
@@ -43,7 +43,7 @@ Run:
 
 On recent Safari versions, open Safari Settings, enable the Developer tab if needed, select **Add Temporary Extension…**, and choose `dist/safari-extension/` or the Safari zip. Temporary extensions are for testing and Safari removes them after its temporary-extension lifetime.
 
-For a permanent signed build, install full Xcode and rerun the script. It creates an Apple Safari Web Extension Xcode wrapper when Apple's packager is available. Open the generated project, configure signing, build the containing app, then enable **Chat Archive** under Safari Settings → Extensions.
+For a permanent signed build, install full Xcode and rerun the script. It creates an Apple Safari Web Extension Xcode wrapper when Apple's packager is available. Open the generated project, configure signing, build the containing app, then enable **ChatGPT to Word/PDF** under Safari Settings → Extensions.
 
 ## Use
 

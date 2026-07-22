@@ -1,6 +1,6 @@
 # Privacy policy
 
-Chat Archive processes conversation content locally in the browser only when the user starts an export.
+ChatGPT to Word/PDF processes conversation content locally in the browser only when the user starts an export.
 
 - No account, subscription, analytics, advertising, telemetry, or remote conversion service is used.
 - Conversation text is read from the open ChatGPT page and written directly into the requested local document.

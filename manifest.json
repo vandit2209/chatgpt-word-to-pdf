@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Chat Archive — Word & PDF",
-  "short_name": "Chat Archive",
+  "name": "ChatGPT to Word/PDF",
+  "short_name": "GPT Word/PDF",
   "version": "1.0.2",
   "description": "Export a ChatGPT response, selected messages, a full conversation, or Canvas to Word and PDF.",
   "permissions": [
